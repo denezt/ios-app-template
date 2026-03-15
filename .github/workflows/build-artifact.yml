@@ -1,0 +1,57 @@
+name: Build and publish zip artifact
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Ionic app
+        run: npm run build
+
+      - name: Prepare artifact folder
+        run: |
+          mkdir -p artifact
+          cp -r src artifact/src
+          cp -r .github artifact/.github
+          cp package.json artifact/
+          cp angular.json artifact/
+          cp tsconfig.json artifact/
+          cp tsconfig.app.json artifact/
+          cp capacitor.config.ts artifact/
+          cp README.md artifact/
+          cp .gitignore artifact/
+          if [ -d www ]; then cp -r www artifact/www; fi
+
+      - name: Create zip package
+        run: |
+          cd artifact
+          zip -r ../karotu-health-app-build.zip .
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: karotu-health-app-build
+          path: karotu-health-app-build.zip
+          retention-days: 30
+          if-no-files-found: error
